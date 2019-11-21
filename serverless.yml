@@ -1,0 +1,58 @@
+
+
+service: hello-world-ex
+
+plugins: 
+  - serverless-step-functions
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+
+functions: 
+  add:
+    handler: handler.add
+  double:
+    handler: handler.double
+  doubleBigNumber:
+    handler: handler.doubleBigNumber
+
+stepFunctions:
+  stateMachines:
+    simple-math:
+      name: simple-math
+      definition:
+        Comment: function chain example
+        StartAt: Add
+        States:
+          Add:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [add, Arn]
+            Next: IsBigNumber
+          IsBigNumber:
+            Type: Choice
+            Choices:
+              - Variable: $
+                NumericGreaterThan: 50
+                Next: DoubleBigNumber
+            Default: Double
+          Double:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [double, Arn]
+            End: true
+            Retry:
+              - ErrorEquals: [NumberIsTooBig]
+                MaxAttempts: 0
+              - ErrorEquals: [States.ALL]
+                MaxAttempts: 3
+            Catch:
+              - ErrorEquals: [NumberIsTooBig]
+                Next: DoubleBigNumber
+          DoubleBigNumber:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [doubleBigNumber, Arn]
+            End: true
+            
